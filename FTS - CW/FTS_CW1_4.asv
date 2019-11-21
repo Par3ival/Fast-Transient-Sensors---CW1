@@ -1,0 +1,136 @@
+clear
+
+% Question 4
+
+mu0=(4*pi)*10^(-7);
+
+R=10e-3; %Resistance
+L=120e-9; %Inductance
+C=28e-6; %Capacitance
+V0=25e3;
+
+rodd=10e-3; %Sensor rod diameter
+
+cmp=2*sqrt(L/C);
+%Since R<cmp use underdamped eqn
+% Time Variation of Current in RLC
+t=0:2e-7:2.6e-5;
+tleng=length(t);
+It=zeros(1,tleng);
+newIt=zeros(1,tleng);
+w=sqrt(((1)/(L*C))-(((R)/(2*L))^2));
+fn1=(V0)/(w*L);
+
+for i=1:tleng
+    tuse=t(i);
+    fn2=exp(((-1)*((R)/(2*L)))*tuse);
+    fn3=sin(w*tuse);
+    It(i)=fn1*fn2*fn3;
+end
+
+figure(1)
+plot(t,It)
+title('Current Over Time')
+xlabel('Time')
+ylabel('Current (Amps)')
+
+%newIt=gradient(It(:))./gradient(t(:));
+newIt=gradient(It(:),t(:));
+
+figure(2)
+plot(t,newIt)
+title('Rate of change')
+xlabel('Time')
+ylabel('Current (Amps/s)')
+
+% Chosen Radii for Rogowski Coil
+major=0.2; %Initially 0.1
+minor=0.15; %Initially 0.01
+%using a rearranged eqn of 0.0723=(A*N)/L
+%Where A is cross area of small radius and L is circumference
+%of the large radius
+N=350;%Number of turns (144.5)
+%Using CCS (Copper Clad Steel)
+wired=0.8e-3;%Wire diameter
+wireres=50;%Standard 50ohm cable
+wireresist=0.082296;%Resistivity ohms/m
+
+viewR=10000;%10kohm
+
+%Self inductance and Resistance
+pitch=(2*pi*major)/(N);
+
+Lfn1=(mu0*minor)*((2*pi*major)/(pitch));
+Lfn2=((pi*minor)/(pitch))+log((2*pitch)/(wired))-((5)/(4));
+Lfnsum=log((2*pi*major)/(pitch));
+Lfnsum0=(0.0007*((Lfnsum)^0));
+Lfnsum1=(0.1773*((Lfnsum)^1));
+Lfnsum2=(((-1)*0.0322)*((Lfnsum)^2));
+Lfnsum3=(0.00197*((Lfnsum)^3));
+Lfnsumtotal=Lfnsum0+Lfnsum1+Lfnsum2+Lfnsum3;
+
+Lfinal=Lfn1*(Lfn2-Lfnsumtotal);%Self Inductance
+
+freq1=(1)/(1.18e-5);
+
+wirelength=N*sqrt((pitch^2)+((2*pi*minor)^2));
+area=pi*wired*sqrt((wireresist)/(pi*freq1*mu0));
+Rfinal=wireresist*((wirelength)/(area));
+
+%Current through the Rogowski Coil Graph
+%Finding phi
+
+kdiff=mu0*N*(major-sqrt((major^2)-(minor^2)));
+Isens=zeros(1,tleng);
+
+for p=1:tleng
+    tuse2=t(p);
+    phidiff=kdiff*It(p);%If rate of change, change to newIt(p)
+    Ix=exp((Rfinal/Lfinal)*tuse2);
+    IsFn1=(((Lfinal)/(Rfinal))*(phidiff^2))*(Ix-1);
+    Isens(p)=(IsFn1)/(Ix);
+end 
+
+figure(3)
+plot(t,Isens)
+title('Approximate Current In Rogowski Coil')
+xlabel('Time')
+ylabel('Current (Amps)')
+
+%newIsens=gradient(Isens(:))./gradient(t(:)); %Differential of Isensor
+newIsens=gradient(Isens(:),t(:));
+
+figure(4)
+plot(t,newIsens)
+title('Approximate Current Rate of Change In Rogowski Coil')
+xlabel('Time')
+ylabel('Current (Amps/s)')
+
+%Show its a differential coil
+cmp1=Lfinal.*(newIsens(:));
+cmp2=Rfinal.*(Isens(:));
+figure(5)
+plot(t,cmp1)
+hold on
+plot(t,cmp2)
+hold off
+title('Proof of Rogowski Coil Differential Mode ')
+xlabel('Time')
+ylabel('Voltage Output(V)')
+%Looking at the output data it can be seen that this coil does
+%indeed act as a differential coil. After a short period of time CMP2
+%is always greater than CMP1 which obeys L(dIs/dt)<<RIs , where Is is
+%Isensor.
+
+%Calc output voltage Isens*Rcv where Rcv is current viewing resistor(50ohm)
+
+Voutput=viewR.*(Isens(:));
+figure(6)
+plot(t,Voutput)
+title('Voltage Across Viewing Resistor (Rcv)')
+xlabel('Time')
+ylabel('Voltage (V)')
+
+%Values of R and C for the passive Integrator
+
+tau=
